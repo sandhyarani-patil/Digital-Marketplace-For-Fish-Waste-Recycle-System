@@ -30,4 +30,6 @@ public class CompanyDashboardDto {
 
 
     private BigDecimal totalSpentAmount;
+
+
 }

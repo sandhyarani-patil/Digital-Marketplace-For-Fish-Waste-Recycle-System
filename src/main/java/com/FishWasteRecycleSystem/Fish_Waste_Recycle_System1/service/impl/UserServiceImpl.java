@@ -1,13 +1,19 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.impl;
 
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Company;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Seller;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.enums.Role;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.BadRequestException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.ResourceNotFoundException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.DuplicateResourceException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.UserDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.UserRequestDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.User;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.repository.CompanyRepository;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.repository.SellerRepository;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.repository.UserRepository;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.UserService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.modelmapper.ModelMapper;
@@ -23,6 +29,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
+    private final CompanyRepository companyRepository;
+    private final SellerRepository sellerRepository;
 
 
     public List<UserDto> getAllUser(){
@@ -55,12 +63,24 @@ public class UserServiceImpl implements UserService {
         return modelMapper.map(savedUser, UserDto.class);
     }
     @Override
+    @Transactional
     public void deleteUserById(Long id) {
-        if(!userRepository.existsById(id))
-        {
-            throw new ResourceNotFoundException("User not found with id: " + id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        if (user.getRole() == Role.SELLER) {
+            Seller seller = sellerRepository.findByUser(user);
+            if (seller != null) {
+                sellerRepository.delete(seller);
+            }
+        } else if (user.getRole() == Role.COMPANY) {
+            Company company = companyRepository.findByUser(user);
+            if (company != null) {
+                companyRepository.delete(company);
+            }
         }
-        userRepository.deleteById(id);
+
+        userRepository.delete(user);
     }
 
     @Override
